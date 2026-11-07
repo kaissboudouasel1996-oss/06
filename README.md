@@ -18,6 +18,8 @@ GitHub builds the APK for you, no Android Studio needed.
 
 ## API key
 
+With a premium key the app lists **every remaining match of the season** for each league (and up to 100 channels per match). The free key shows only the next match.
+
 The app works out of the box with TheSportsDB's free key, but that key is heavily limited: it returns only a few matches and channels per request. For the full list of matches and channels, get a premium key from TheSportsDB and paste it in the app: gear icon, **TheSportsDB API key**, Save.
 
 The key is stored only on your phone, never in this repository.

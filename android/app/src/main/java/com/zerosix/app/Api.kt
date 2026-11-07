@@ -66,9 +66,33 @@ object Api {
     private fun str(o: JSONObject, key: String): String =
         if (o.isNull(key)) "" else o.optString(key, "").trim()
 
-    /** Upcoming matches of one league. */
+    /**
+     * Upcoming matches of one league. With a premium key this is every remaining match of the
+     * season; the free key can only see the next one (TheSportsDB limits it).
+     */
     fun nextMatches(ctx: Context, leagueId: String): List<Match> {
-        val root = get(ctx, "eventsnextleague.php?id=$leagueId")
+        if (!Prefs.isFreeKey(Prefs.apiKey(ctx))) {
+            val season = seasonMatches(ctx, leagueId)
+            if (season.isNotEmpty()) return season
+        }
+        return parseEvents(get(ctx, "eventsnextleague.php?id=$leagueId"))
+    }
+
+    /** European seasons run August to May, so July onwards belongs to the season starting that year. */
+    private fun currentSeason(): String {
+        val today = LocalDate.now(ZoneOffset.UTC)
+        val start = if (today.monthValue >= 7) today.year else today.year - 1
+        return "$start-${start + 1}"
+    }
+
+    private fun seasonMatches(ctx: Context, leagueId: String): List<Match> {
+        val cutoff = System.currentTimeMillis() - 3 * 60 * 60 * 1000 // keep matches that just started
+        return parseEvents(get(ctx, "eventsseason.php?id=$leagueId&s=${currentSeason()}"))
+            .filter { (it.kickoffMs ?: Long.MAX_VALUE) >= cutoff }
+            .sortedBy { it.kickoffMs ?: Long.MAX_VALUE }
+    }
+
+    private fun parseEvents(root: JSONObject): List<Match> {
         val arr = root.optJSONArray("events") ?: return emptyList()
         return (0 until arr.length()).mapNotNull { parseMatch(arr.optJSONObject(it)) }
     }
